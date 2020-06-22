@@ -3,12 +3,14 @@ import * as express from 'express';
 import * as helmet from 'helmet';
 import * as hpp from 'hpp';
 import * as logger from 'morgan';
+// @ts-ignore
+import * as prometheusMiddleware from 'express-prometheus-middleware';
 import Routes from './interfaces/routes.interface';
 import errorMiddleware from './middlewares/error.middleware';
 
 class App {
   public app: express.Application;
-  public port: (string | number);
+  public port: string | number;
   public env: boolean;
 
   constructor(routes: Routes[]) {
@@ -45,6 +47,15 @@ class App {
 
     this.app.use(express.json());
     this.app.use(express.urlencoded({ extended: true }));
+    this.app.use(
+      prometheusMiddleware({
+        metricsPath: '/metrics',
+        collectDefaultMetrics: true,
+        requestDurationBuckets: [0.1, 0.5, 1, 1.5],
+        authenticate: (req: express.Request) =>
+          req.headers.authorization === process.env.SECRET_TOKEN,
+      })
+    );
   }
 
   private initializeRoutes(routes: Routes[]) {
